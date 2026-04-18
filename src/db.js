@@ -11,7 +11,9 @@ let db;
 async function getDb() {
   if (db) return db;
 
-  const SQL = await initSqlJs();
+  const SQL = await initSqlJs({
+        locateFile: file => path.join(__dirname, '../node_modules/sql.js/dist', file)
+  });
 
   // Ensure data directory exists
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
@@ -46,9 +48,13 @@ async function getDb() {
 
 function persist() {
   if (!db) return;
-  const data = db.export();
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
-}
+  try {
+    const data = db.export();
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
+} catch (err) {
+    // Log but don't crash the request — better to be in-memory only than dead
+    console.error("Persistence failed:", err.message);
+  }
 
 module.exports = { getDb, persist };
